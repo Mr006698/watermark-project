@@ -80,7 +80,10 @@ class WatermarkApp:
 
 
   def _add_watermark(self) -> None:
-    self._image_container.add_watermark(self._watermark_control_panel.get_watermark_text())
+    self._image_container.add_watermark(
+      self._watermark_control_panel.get_watermark_text(),
+      self._watermark_control_panel.get_watermark_font(),
+      self._watermark_control_panel.get_watermark_colour())
 
 
   def _load_theme(self) -> None:

@@ -1,38 +1,97 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, colorchooser
 from ctypes import windll
-from collections.abc import Iterable
+from collections.abc import Callable
+from typing import Optional
 from pprint import pprint
 
 # Remove blurry text on high DPI screens
 windll.shcore.SetProcessDpiAwareness(1)
 
-class ColourCombobox(ttk.Combobox):
-  def __init__(self, master = None, colours: Iterable[str] = None, textvariable: str = None):
-    
-    super().__init__(master, values=colours, textvariable=textvariable, state='readonly')
-    self.config(postcommand=lambda: self.after_idle(self._config_items))
-    self.config(style='Colour.TCombobox', foreground='Green')
-    self['style'] = 'Colour.TCombobox'
+class ColourButton(ttk.Frame):
+  callback: Optional[Callable[[], str]] = None
+  _btn_normal: Optional[str] = None
+  _btn_light: Optional[str] = None
+  _btn_dark: Optional[str] = None
+  _colour_tint: float = 0.25
+
+  def __init__(self, root=None, colour: str=None, cursor: str='', size: int=32):
+    super().__init__(root, cursor=cursor)
+
+    # Check the value of the colour paramater
+    #if not isinstance(colour, str): raise TypeError('colour must be a string')
+
+    # Create the button colours
+    self._btn_normal = colour
+    self._create_colour_shades(colour, self._colour_tint)
+
+    # Configure the frame
+    self.config(border=1, relief='solid', width=size, height=size)
+
+    # Biind click events to the frame
+    # self.bind('<Enter>', self._btn_enter)
+    # self.bind('<Leave>', self._btn_leave)
+    # self.bind('<ButtonPress-1>', self._btn_press)
+    # self.bind('<ButtonRelease-1>', self._btn_release)
+
+    # Create the canvas
+    self._canvas = tk.Canvas(self, width=size, height=size, bg=self._btn_normal, highlightthickness=1)
+    self._canvas.pack(fill=tk.BOTH, expand = True)
+    self._canvas.bind('<Enter>', self._btn_enter)
+    self._canvas.bind('<Leave>', self._btn_leave)
+    self._canvas.bind('<ButtonPress-1>', self._btn_press)
+    self._canvas.bind('<ButtonRelease-1>', self._btn_release)
 
 
-  def _config_items(self) -> None:
-    lines = ['set popdown [ttk::combobox::PopdownWindow .!colourcombobox]']
-    for i, v in enumerate(self['values']):
-      lines.append(f'$popdown.f.l itemconfigure {i} -background {v}')
-    
-    self.master.tk.eval('\n'.join(lines))
+  def _btn_enter(self, event) -> None:
+    if self._btn_light is not None:
+      self._canvas.config(bg=self._btn_light)
 
 
-class SimpleColourSelector(ttk.Entry):
-  def __init__(self, master = None, colours: Iterable[str] = None):
-    super().__init__(master)
-    self.config(background='black', width=10)
-    self._menu = tk.Listbox(self)
-    for index in range(len(colours)):
-      self._menu.insert(index, colours[index])
-      self._menu.itemconfig(index, background=colours[index], foreground=colours[index])
-    self._menu.pack(side=tk.BOTTOM)
+  def _btn_leave(self, event) -> None:
+    if self._btn_normal is not None:
+      self._canvas.config(bg=self._btn_normal)
+
+
+  def _btn_press(self, event) -> None:
+    if self._btn_dark is not None:
+      self._canvas.config(bg=self._btn_dark)
+
+
+  def _btn_release(self, event) -> None:
+    new_colour = colorchooser.askcolor(self._btn_normal, title='Select a colour')
+    if new_colour[1] is not None:
+      self._btn_normal = new_colour[1]
+      self._canvas.config(bg=self._btn_normal)
+      self._create_colour_shades(new_colour[1], self._colour_tint)
+
+
+  def _create_colour_shades(self, colour: str, tint: float) -> str:
+    if colour.startswith('#') and len(colour) == 7:
+      rgb = self._hex_to_rgb(colour)
+
+    else:
+      print('Name colour')
+      rgb = self._name_to_rgb(colour)
+
+    dark_rgb = (int(rgb[0] * (1 - tint)), int(rgb[1] * (1 - tint)), int(rgb[2] * (1 - tint)))
+    light_rgb = (int(rgb[0] + ((255 - rgb[0]) * tint)), int(rgb[1] + ((255 - rgb[1]) * tint)), int((rgb[2] + ((255 - rgb[2]) * tint))))
+
+    self._btn_dark = self._rgb_to_hex(*dark_rgb)
+    self._btn_light = self._rgb_to_hex(*light_rgb)
+
+  
+  def _hex_to_rgb(self, h: str) -> tuple:
+    if h.startswith('#'): h = h.lstrip('#') #h[1:]
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+  
+
+  def _rgb_to_hex(self, r: int, g: int, b: int) -> str:
+    return f'#{r:02X}{g:02X}{b:02X}'
+  
+
+  def _name_to_rgb(self, name: str) -> tuple:
+    return (tuple(c//256 for c in self.master.winfo_rgb(name)))
 
 
 root = tk.Tk()
@@ -40,15 +99,8 @@ root.title('Colour Combobox')
 root.geometry('640x480')
 
 options = ['Red', 'Green', 'Blue', 'yellow']
-colour_selecton = tk.StringVar(root, options[0])
-colour_combobox = ColourCombobox(master=root, colours=options, textvariable=colour_selecton)
-colour_combobox.pack(padx=10, pady=10)
-
-simple_colour_selector = SimpleColourSelector(root, options)
-simple_colour_selector.pack(padx=10, pady=10)
-
-c = ttk.Combobox(root, values=options)
-c.pack(padx=10, pady=10)
+btn = ColourButton(root, colour='grey', cursor='hand2', size=28)
+btn.pack(padx=10, pady=10)
 
 if __name__ == '__main__':
   root.mainloop()

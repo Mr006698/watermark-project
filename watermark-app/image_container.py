@@ -25,7 +25,7 @@ class ImageContainer(ttk.Frame):
   _scale_image = False
   _scale_factor = 1.0
 
-  def __init__(self, parent: tk.Widget):
+  def __init__(self, parent: tk.Tk):
     # Call the parent class constructor
     super().__init__(master=parent)
 
@@ -55,8 +55,6 @@ class ImageContainer(ttk.Frame):
     self._canvas.bind('<MouseWheel>', None)  # with Windows and MacOS, but not Linux
     self._canvas.bind('<Button-5>',   None)  # only with Linux, wheel scroll down
     self._canvas.bind('<Button-4>',   None)  # only with Linux, wheel scroll up
-
-    #self._canvas.bind('<Configure>', self._canvas_resized)
 
 
   def load_image(self, filename: str) -> None:
@@ -90,11 +88,17 @@ class ImageContainer(ttk.Frame):
     self._show_image()
 
 
-  def add_watermark(self, text: str) -> None:
-    print(f'{self.__class__.__name__}: _add_watermark() called. {text}')
+  def add_watermark(self, text: str, font: str, colour: str) -> None:
+    if self._original_img is None:
+      return
+    
+    print(f'{self.__class__.__name__}: _add_watermark({text}, {font}, {colour}) called. {text}')
 
 
   def _show_image(self) -> None:
+    if self._original_img is None:
+      return
+    
     # Destroy all existing widgets on the canvas
     self._canvas.delete('all')
 
