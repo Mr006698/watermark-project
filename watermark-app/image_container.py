@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageDraw, ImageFont
+from system_fonts import SystemFonts
 
 class AutoScrollbar(ttk.Scrollbar):
   def set(self, low, high):
@@ -20,14 +21,18 @@ class AutoScrollbar(ttk.Scrollbar):
 
 
 class ImageContainer(ttk.Frame):
+  _backup_img = None
   _original_img = None
   _tk_image = None
   _scale_image = False
   _scale_factor = 1.0
 
-  def __init__(self, parent: tk.Tk):
+  def __init__(self, parent: tk.Tk, system_fonts: SystemFonts):
     # Call the parent class constructor
     super().__init__(master=parent)
+
+    # Save reference to the system fonts
+    self._system_fonts = system_fonts
 
     # Vertical and horizontal scrollbars
     vertical_scrollbar = AutoScrollbar(self, orient='vertical')
@@ -59,7 +64,8 @@ class ImageContainer(ttk.Frame):
 
   def load_image(self, filename: str) -> None:
     # Load the image
-    self._original_img = Image.open(filename)
+    self._backup_img = Image.open(filename)
+    self._original_img = self._backup_img.copy() #Image.open(filename)
     self._scale_factor = 1.0
     self._show_image()
   
@@ -88,11 +94,29 @@ class ImageContainer(ttk.Frame):
     self._show_image()
 
 
-  def add_watermark(self, text: str, font: str, colour: str) -> None:
+  def add_watermark(self, text: str, font: str, font_size: int, colour: str) -> None:
     if self._original_img is None:
       return
     
-    print(f'{self.__class__.__name__}: _add_watermark({text}, {font}, {colour}) called. {text}')
+    draw_img = ImageDraw.Draw(self._original_img)
+    font_file = self._system_fonts.get_font_path(font)
+    font = ImageFont.truetype(font_file, size=font_size)
+
+    text_box = draw_img.textbbox((0, 0), text, font)
+    margin = 10
+    img_width, img_height = self._original_img.size
+    position = (img_width - text_box[2] - margin, img_height - text_box[3] - margin)
+    draw_img.text(position, text, font=font, fill=colour)
+
+    self._show_image()
+
+
+  def reset_image(self) -> None:
+    if self._backup_img is None:
+      return
+    
+    self._original_img = self._backup_img.copy()
+    self._show_image()
 
 
   def _show_image(self) -> None:

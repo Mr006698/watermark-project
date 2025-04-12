@@ -96,7 +96,7 @@ class ColourButton(ttk.Frame):
 
 # WATERMARK CONTROL PANEL
 class WatermarkControlPanel(ttk.Frame):
-  def __init__(self, root_window: tk.Tk, add_watermark):
+  def __init__(self, root_window: tk.Tk, fonts: list[str], add_watermark):
     # Call the parent class constructor
     super().__init__(master=root_window, style='Card.TFrame')
 
@@ -104,7 +104,10 @@ class WatermarkControlPanel(ttk.Frame):
     self._create_watermark_text_entry()
 
     # Create the font combobox
-    self._create_font_combobox()
+    self._create_font_combobox(fonts)
+
+    # Create the font size input
+    self._create_font_size_input()
 
     # Create the colour selector
     self._create_colour_button()
@@ -115,6 +118,10 @@ class WatermarkControlPanel(ttk.Frame):
 
   def get_watermark_text(self) -> str:
     return self._watermark_text.get()
+  
+
+  def get_watermark_font_size(self) -> int:
+    return int(self._font_size.get())
   
 
   def get_watermark_font(self) -> str:
@@ -131,14 +138,37 @@ class WatermarkControlPanel(ttk.Frame):
     self._text_entry.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=(5, 10), pady=(5, 5))
   
 
-  def _create_font_combobox(self) -> None:
-    # Create the font selection combobox
-    fonts = list(font.families())
-    fonts.sort()
+  def _create_font_combobox(self, fonts: list[str]) -> None:
     self._selected_font = tk.StringVar(self, value=font.nametofont('TkDefaultFont').actual()['family']) # Set this to the default font of tkinter
     font_combobox = ttk.Combobox(self, values=fonts, textvariable=self._selected_font, width=30, state='readonly')
     font_combobox.bind('<<ComboboxSelected>>', self._font_changed)
     font_combobox.pack(side=tk.LEFT, expand=False, fill=tk.Y, padx=(0, 5), pady=5)
+
+
+  def _create_font_size_input(self) -> None:
+
+    self._font_size = tk.StringVar(self, value='20')
+    vcmd = (self.register(self._validate_font_size), ('%S'))
+    font_size_box = ttk.Entry(
+      self,
+      textvariable=self._font_size,
+      width=3,
+      validate='key',
+      validatecommand=vcmd)
+    
+    font_size_box.bind('<FocusOut>', self._check_font_size_value)
+    font_size_box.pack(side=tk.LEFT, expand=False, fill=tk.Y, padx=(5, 5), pady=5)
+
+
+  def _validate_font_size(self, value: str) -> bool:
+    # Only accept numbers as font size
+    return value.isdigit()
+  
+
+  def _check_font_size_value(self, event) -> None:
+    # Prevent font sizes of nothing
+    if not self._font_size.get():
+      self._font_size.set('1')
 
   
   def _create_colour_button(self) -> None:
@@ -171,7 +201,7 @@ class WatermarkControlPanel(ttk.Frame):
 
 # IMAGE CONTROL PANEL
 class ImageControlPanel(ttk.Frame):
-  def __init__(self, root_window: tk.Tk, load_image, save_image, fit_to_window, actual_size, rotate_image) -> None:
+  def __init__(self, root_window: tk.Tk, load_image, save_image, fit_to_window, actual_size, rotate_image, reset_image) -> None:
     # Call the parent class constructor
     super().__init__(master=root_window, style='Card.TFrame')
 
@@ -180,6 +210,7 @@ class ImageControlPanel(ttk.Frame):
     self._create_fit_window_btn(fit_to_window)
     self._create_actual_size_btn(actual_size)
     self._create_rotate_btns(rotate_image)
+    self._create_reset_btn(reset_image)
 
 
   def _create_load_button(self, load_image) -> None:
@@ -254,3 +285,15 @@ class ImageControlPanel(ttk.Frame):
     )
 
     rotate_right_btn.pack(side=tk.TOP, padx=5, pady=5)
+
+  
+  def _create_reset_btn(self, reset_image) -> None:
+    reset_btn = ttk.Button(
+      self,
+      text='Reset',
+      style='Accent.TButton',
+      width=15,
+      command=reset_image
+    )
+
+    reset_btn.pack(side=tk.TOP, padx=5, pady=5)

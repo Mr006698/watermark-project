@@ -4,6 +4,7 @@ from ctypes import windll
 
 from control_panel import WatermarkControlPanel, ImageControlPanel
 from image_container import ImageContainer
+from system_fonts import SystemFonts
 
 
 class WatermarkApp:
@@ -15,6 +16,9 @@ class WatermarkApp:
     self._root_window.geometry('1280x800')
     self._root_window.minsize(640, 400)
 
+    # Cache the system fonts
+    self._system_fonts = SystemFonts(self._root_window)
+
     # Hide the root window untill all
     # widgets are created and positioned
     self._root_window.withdraw()
@@ -23,7 +27,7 @@ class WatermarkApp:
     self._load_theme()
 
     # Create the control panel
-    self._watermark_control_panel = WatermarkControlPanel(self._root_window, self._add_watermark)
+    self._watermark_control_panel = WatermarkControlPanel(self._root_window, self._system_fonts.get_tk_fonts(), self._add_watermark)
     self._watermark_control_panel.pack(side=tk.TOP, expand=False, fill=tk.X, padx=5, pady=5)
 
     # Create the image control panel
@@ -33,12 +37,13 @@ class WatermarkApp:
       self._save_image,
       self._fit_to_window,
       self._actual_size,
-      self._rotate_image)
+      self._rotate_image,
+      self._reset_image)
     
     self._image_control_panel.pack(side=tk.LEFT, expand=False, fill=tk.Y, padx=5, pady=5)
 
     # Create the image container
-    self._image_container = ImageContainer(self._root_window)
+    self._image_container = ImageContainer(self._root_window, self._system_fonts)
     self._image_container.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 
     # Center the root window
@@ -83,7 +88,12 @@ class WatermarkApp:
     self._image_container.add_watermark(
       self._watermark_control_panel.get_watermark_text(),
       self._watermark_control_panel.get_watermark_font(),
+      self._watermark_control_panel.get_watermark_font_size(),
       self._watermark_control_panel.get_watermark_colour())
+    
+
+  def _reset_image(self) -> None:
+    self._image_container.reset_image()
 
 
   def _load_theme(self) -> None:
